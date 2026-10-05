@@ -44,3 +44,32 @@ module "bot_identity" {
   resource_group_name = azurerm_resource_group.bot.name
   tags                = local.tags
 }
+
+# ---------- Azure OpenAI (East US - gpt-4o 2024-11-20, Standard quota 50K TPM) ----------
+module "openai" {
+  source = "./modules/openai"
+
+  name                       = "oai-${var.project}-${local.suffix}"
+  location                   = var.openai_location
+  resource_group_name        = azurerm_resource_group.bot.name
+  tags                       = local.tags
+  log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+
+  openai_user_principal_ids = {
+    bot      = module.bot_identity.principal_id
+    deployer = data.azurerm_client_config.current.object_id # lets you test with your own az login token
+  }
+}
+
+# ---------- Table Storage: conversation memory, rate limit, pending confirmations ----------
+module "data" {
+  source = "./modules/data"
+
+  storage_account_name = "st${var.project}${local.suffix}"
+  location             = azurerm_resource_group.bot.location
+  resource_group_name  = azurerm_resource_group.bot.name
+  tags                 = local.tags
+
+  bot_principal_id    = module.bot_identity.principal_id
+  reader_principal_id = data.azurerm_client_config.current.object_id
+}

@@ -24,3 +24,20 @@ output "bot_identity" {
     principal_id = module.bot_identity.principal_id
   }
 }
+
+output "openai" {
+  value = {
+    name           = module.openai.name
+    endpoint       = module.openai.endpoint
+    deployment     = module.openai.deployment_name
+    content_filter = module.openai.content_filter_policy
+  }
+}
+
+output "table_storage" {
+  value = {
+    account  = module.data.storage_account_name
+    endpoint = module.data.table_endpoint
+    tables   = module.data.tables
+  }
+}
