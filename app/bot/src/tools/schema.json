@@ -1,0 +1,84 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "get_pipeline_status",
+      "description": "Get the result of the latest Azure DevOps pipeline run (succeeded, failed, in progress) for a pipeline and branch.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "pipeline_name": {
+            "type": "string",
+            "description": "Pipeline name or part of it, e.g. 'orders-api'."
+          },
+          "branch": {
+            "type": "string",
+            "description": "Branch name without refs/heads/, e.g. 'main'. Defaults to main.",
+            "default": "main"
+          }
+        },
+        "required": ["pipeline_name"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "get_active_alerts",
+      "description": "List Azure Monitor alerts that are currently fired in a resource group, with severity, target resource and fired time.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "resource_group": {
+            "type": "string",
+            "description": "Azure resource group name, e.g. 'rg-task7-target'."
+          }
+        },
+        "required": ["resource_group"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "get_deployment_history",
+      "description": "Return the last 5 deployments of an App Service / Function App (production and staging slot) with version, status, deployer and time.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "app_name": {
+            "type": "string",
+            "description": "App Service or Function App name, e.g. 'func-orders-svc-xxxx'."
+          }
+        },
+        "required": ["app_name"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "trigger_rollback",
+      "description": "Roll back an app by swapping the given slot (normally 'staging', which holds the previous release) into production. Requires explicit user confirmation, which the system collects.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "app_name": {
+            "type": "string",
+            "description": "App Service or Function App name to roll back."
+          },
+          "slot": {
+            "type": "string",
+            "description": "Source slot to swap into production.",
+            "default": "staging"
+          }
+        },
+        "required": ["app_name"],
+        "additionalProperties": false
+      }
+    }
+  }
+]

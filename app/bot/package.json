@@ -1,0 +1,36 @@
+{
+  "name": "chatops-bot",
+  "version": "1.0.0",
+  "description": "Azure OpenAI ChatOps bot - Bot Framework on Azure Functions with tool calling",
+  "main": "src/functions/*.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "jest --ci --coverage --reporters=default --reporters=jest-junit",
+    "start": "func start"
+  },
+  "dependencies": {
+    "@azure/data-tables": "^13.3.0",
+    "@azure/functions": "^4.6.0",
+    "@azure/identity": "^4.5.0",
+    "applicationinsights": "^2.9.6",
+    "botbuilder": "^4.23.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-junit": "^16.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/functions/**"
+    ],
+    "transform": {}
+  },
+  "jest-junit": {
+    "outputDirectory": "test-results",
+    "outputName": "junit.xml"
+  }
+}

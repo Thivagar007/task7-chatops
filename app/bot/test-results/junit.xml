@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="19" failures="0" errors="0" time="10.136">
+  <testsuite name="undefined" errors="0" failures="0" skipped="0" timestamp="2026-10-05T15:23:06" time="3.32" tests="4">
+    <testcase classname=" sends a bearer token (no api-key header) and returns message + usage" name=" sends a bearer token (no api-key header) and returns message + usage" time="0.01">
+    </testcase>
+    <testcase classname=" prompt blocked by the content filter -&gt; ContentFilterError(prompt)" name=" prompt blocked by the content filter -&gt; ContentFilterError(prompt)" time="0.002">
+    </testcase>
+    <testcase classname=" completion filtered -&gt; ContentFilterError(completion)" name=" completion filtered -&gt; ContentFilterError(completion)" time="0.001">
+    </testcase>
+    <testcase classname=" filteredCategories ignores safe categories" name=" filteredCategories ignores safe categories" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="undefined" errors="0" failures="0" skipped="0" timestamp="2026-10-05T15:23:06" time="3.367" tests="8">
+    <testcase classname=" get_pipeline_status maps the latest build" name=" get_pipeline_status maps the latest build" time="0.007">
+    </testcase>
+    <testcase classname=" get_pipeline_status reports in-progress runs" name=" get_pipeline_status reports in-progress runs" time="0.001">
+    </testcase>
+    <testcase classname=" get_active_alerts returns fired alerts with severity and time" name=" get_active_alerts returns fired alerts with severity and time" time="0.001">
+    </testcase>
+    <testcase classname=" get_active_alerts refuses resource groups outside the allow-list" name=" get_active_alerts refuses resource groups outside the allow-list" time="0">
+    </testcase>
+    <testcase classname=" get_deployment_history merges slots, newest first, max 5" name=" get_deployment_history merges slots, newest first, max 5" time="0.002">
+    </testcase>
+    <testcase classname=" versionFrom extracts semantic versions" name=" versionFrom extracts semantic versions" time="0">
+    </testcase>
+    <testcase classname=" rollback validation enforces the allow-list and slot names" name=" rollback validation enforces the allow-list and slot names" time="0.001">
+    </testcase>
+    <testcase classname=" executeRollback calls the slot swap API" name=" executeRollback calls the slot swap API" time="0">
+    </testcase>
+  </testsuite>
+  <testsuite name="undefined" errors="0" failures="0" skipped="0" timestamp="2026-10-05T15:23:06" time="9.605" tests="7">
+    <testcase classname=" calls get_pipeline_status when the model asks for it and returns the final answer" name=" calls get_pipeline_status when the model asks for it and returns the final answer" time="0.01">
+    </testcase>
+    <testcase classname=" rollback is NOT executed until the user replies YES" name=" rollback is NOT executed until the user replies YES" time="0.002">
+    </testcase>
+    <testcase classname=" any reply other than YES cancels the rollback" name=" any reply other than YES cancels the rollback" time="0">
+    </testcase>
+    <testcase classname=" rate limit blocks the 21st request in the same hour" name=" rate limit blocks the 21st request in the same hour" time="0.003">
+    </testcase>
+    <testcase classname=" keeps the last 5 messages as conversation memory" name=" keeps the last 5 messages as conversation memory" time="0">
+    </testcase>
+    <testcase classname=" content-filtered prompts get a refusal and are logged with an anonymised user and category" name=" content-filtered prompts get a refusal and are logged with an anonymised user and category" time="0.001">
+    </testcase>
+    <testcase classname=" every request emits a BotRequest event with latency and tool count" name=" every request emits a BotRequest event with latency and tool count" time="0.001">
+    </testcase>
+  </testsuite>
+</testsuites>
