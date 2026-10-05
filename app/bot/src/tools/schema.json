@@ -62,7 +62,7 @@
     "type": "function",
     "function": {
       "name": "trigger_rollback",
-      "description": "Roll back an app by swapping the given slot (normally 'staging', which holds the previous release) into production. Requires explicit user confirmation, which the system collects.",
+      "description": "Roll back an app by swapping the given slot (normally 'staging', which holds the previous release) into production. Call this directly as soon as the user asks for a rollback - do not ask for confirmation first; the system shows the 'Are you sure?' prompt and collects the YES.",
       "parameters": {
         "type": "object",
         "properties": {

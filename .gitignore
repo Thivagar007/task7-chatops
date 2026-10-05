@@ -13,3 +13,6 @@ coverage/
 local.settings.json
 *.zip
 .env
+
+# Test output
+test-results/

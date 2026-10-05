@@ -8,7 +8,8 @@ const SCOPES = {
 
 class HttpError extends Error {
   constructor(status, body, url) {
-    super(`HTTP ${status} from ${url.split("?")[0]}`);
+    const detail = body && body.error ? ` - ${body.error.code || ""}: ${body.error.message || ""}`.slice(0, 300) : "";
+    super(`HTTP ${status} from ${url.split("?")[0]}${detail}`);
     this.status = status;
     this.body = body;
   }

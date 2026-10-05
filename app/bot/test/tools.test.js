@@ -48,6 +48,18 @@ test("get_active_alerts returns fired alerts with severity and time", async () =
   expect(r.alerts[0]).toMatchObject({ rule: "alert-orders-svc-http5xx", severity: "Sev2", firedAt: "2026-10-05T10:00:00Z" });
 });
 
+test("get_active_alerts falls back to Resource Graph when the Alerts API fails", async () => {
+  mockFetch(
+    { status: 400, body: { error: { code: "BadRequest", message: "unsupported" } } },
+    { body: { data: [{ properties: { essentials: { alertRule: "/x/alert-orders-svc-http5xx", severity: "Sev2", alertState: "New",
+      monitorCondition: "Fired", targetResourceName: "func-orders-svc-x", startDateTime: "2026-10-05T10:00:00Z" } } }] } }
+  );
+  const r = await getActiveAlerts({ resource_group: "rg-task7-target" });
+  expect(r).toMatchObject({ count: 1, source: "resource-graph" });
+  expect(global.fetch.mock.calls[1][0]).toContain("Microsoft.ResourceGraph");
+  expect(global.fetch.mock.calls[1][1].method).toBe("POST");
+});
+
 test("get_active_alerts refuses resource groups outside the allow-list", async () => {
   const r = await getActiveAlerts({ resource_group: "rg-prod-secret" });
   expect(r.error).toMatch(/not in the bot's allowed list/);
