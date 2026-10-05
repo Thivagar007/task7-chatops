@@ -35,6 +35,18 @@ module "monitoring" {
   tags                = local.tags
 }
 
+# ---------- Part E: portal dashboard over the bot's custom events ----------
+module "dashboard" {
+  source = "./modules/dashboard"
+
+  name                = "dash-${var.project}-${local.suffix}"
+  location            = azurerm_resource_group.bot.location
+  resource_group_name = azurerm_resource_group.bot.name
+  tags                = local.tags
+  app_insights_id     = module.monitoring.app_insights_id
+  app_insights_name   = module.monitoring.app_insights_name
+}
+
 # ---------- Identity used by the Function App AND the Azure Bot (no secrets) ----------
 module "bot_identity" {
   source = "./modules/identity"
