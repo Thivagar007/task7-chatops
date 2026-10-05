@@ -73,3 +73,80 @@ module "data" {
   bot_principal_id    = module.bot_identity.principal_id
   reader_principal_id = data.azurerm_client_config.current.object_id
 }
+
+# ---------- Target service the bot reports on and rolls back ----------
+module "target_app" {
+  source = "./modules/target-app"
+
+  name_prefix         = var.project
+  name_suffix         = local.suffix
+  location            = azurerm_resource_group.target.location
+  resource_group_name = azurerm_resource_group.target.name
+  tags                = local.tags
+}
+
+# ---------- Bot backend: Function App (+ staging slot) ----------
+module "function_app" {
+  source = "./modules/function-app"
+
+  name_prefix         = var.project
+  name_suffix         = local.suffix
+  location            = azurerm_resource_group.bot.location
+  resource_group_name = azurerm_resource_group.bot.name
+  tags                = local.tags
+
+  identity_id                    = module.bot_identity.id
+  identity_client_id             = module.bot_identity.client_id
+  tenant_id                      = module.bot_identity.tenant_id
+  app_insights_connection_string = module.monitoring.app_insights_connection_string
+
+  # Endpoints and names only - every call is authorised with the managed identity
+  app_settings = {
+    OPENAI_ENDPOINT        = module.openai.endpoint
+    OPENAI_DEPLOYMENT      = module.openai.deployment_name
+    OPENAI_API_VERSION     = "2024-10-21"
+    TABLE_ENDPOINT         = module.data.table_endpoint
+    ADO_ORG_URL            = var.ado_org_url
+    ADO_PROJECT            = var.ado_project
+    AZ_SUBSCRIPTION_ID     = var.subscription_id
+    ALERT_RESOURCE_GROUPS  = "${azurerm_resource_group.target.name},${azurerm_resource_group.bot.name}"
+    TARGET_RESOURCE_GROUP  = azurerm_resource_group.target.name
+    ALLOWED_APPS           = module.target_app.name # rollback allow-list
+    RATE_LIMIT_PER_HOUR    = tostring(var.rate_limit_per_hour)
+    HISTORY_MAX_MESSAGES   = "5"
+  }
+}
+
+# ---------- Azure Bot + Teams channel ----------
+module "bot" {
+  source = "./modules/bot"
+
+  name                = "bot-${var.project}-${local.suffix}"
+  resource_group_name = azurerm_resource_group.bot.name
+  tags                = local.tags
+
+  identity_id        = module.bot_identity.id
+  identity_client_id = module.bot_identity.client_id
+  tenant_id          = module.bot_identity.tenant_id
+  messaging_endpoint = "https://${module.function_app.hostname}/api/messages"
+}
+
+# ---------- Least-privilege access for the bot's tools ----------
+
+# get_active_alerts: read alerts in the two resource groups only
+resource "azurerm_role_assignment" "bot_monitoring_reader" {
+  for_each = {
+    target = azurerm_resource_group.target.id
+    bot    = azurerm_resource_group.bot.id
+  }
+  scope                = each.value
+  role_definition_name = "Monitoring Reader"
+  principal_id         = module.bot_identity.principal_id
+}
+
+# get_deployment_history + trigger_rollback: only on the target app
+resource "azurerm_role_assignment" "bot_website_contributor" {
+  scope                = module.target_app.id
+  role_definition_name = "Website Contributor"
+  principal_id         = module.bot_identity.principal_id
+}

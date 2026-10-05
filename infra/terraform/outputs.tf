@@ -41,3 +41,24 @@ output "table_storage" {
     tables   = module.data.tables
   }
 }
+
+output "function_app" {
+  value = {
+    name             = module.function_app.name
+    url              = "https://${module.function_app.hostname}"
+    staging_url      = "https://${module.function_app.staging_hostname}"
+    bot_endpoint     = "https://${module.function_app.hostname}/api/messages"
+  }
+}
+
+output "bot_name" {
+  value = module.bot.name
+}
+
+output "target_app" {
+  value = {
+    name        = module.target_app.name
+    url         = "https://${module.target_app.hostname}"
+    staging_url = "https://${module.target_app.staging_hostname}"
+  }
+}

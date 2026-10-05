@@ -30,3 +30,20 @@ variable "tags" {
     "cost-center" = "training"
   }
 }
+
+variable "ado_org_url" {
+  description = "Azure DevOps organization queried by get_pipeline_status"
+  type        = string
+  default     = "https://dev.azure.com/thivagarrajad250495"
+}
+
+variable "ado_project" {
+  description = "Default Azure DevOps project for pipeline lookups"
+  type        = string
+  default     = "orders-api"
+}
+
+variable "rate_limit_per_hour" {
+  type    = number
+  default = 20
+}
