@@ -62,3 +62,10 @@ output "target_app" {
     staging_url = "https://${module.target_app.staging_hostname}"
   }
 }
+
+output "dashboard" {
+  value = {
+    name       = module.dashboard.name
+    portal_url = module.dashboard.portal_url
+  }
+}
