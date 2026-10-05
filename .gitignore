@@ -1,0 +1,15 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+tfplan
+crash.log
+
+# Node / Functions
+node_modules/
+coverage/
+local.settings.json
+*.zip
+.env
