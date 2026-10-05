@@ -1,0 +1,6 @@
+test/
+test-results/
+coverage/
+local.settings.json
+.vscode/
+*.zip

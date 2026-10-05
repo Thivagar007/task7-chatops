@@ -1,0 +1,203 @@
+# =====================================================================
+# Task 7 - Part D: CI/CD for the ChatOps bot (Azure Functions, Node.js 22)
+#
+#   Pull request -> main : Test only (unit tests with mocks, JUnit + coverage)
+#   Merge to main        : Test -> Deploy to STAGING slot
+#                          -> Smoke test /api/chat (assert JSON response)
+#                          -> Swap staging into PRODUCTION -> verify
+#
+# Azure access: service connection "sc-task7-chatops" (workload identity
+# federation, no secret) scoped to resource group rg-task7-chatops.
+# =====================================================================
+
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include: [app/bot/*, pipelines/chatops-bot.yml]
+
+pr:
+  branches:
+    include: [main]
+  paths:
+    include: [app/bot/*, pipelines/chatops-bot.yml]
+
+variables:
+  azureServiceConnection: sc-task7-chatops
+  resourceGroup: rg-task7-chatops
+  functionApp: func-chatops-rzjw
+  botDir: app/bot
+  nodeVersion: 22.x
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+# ---------------------------------------------------------------------
+- stage: Test
+  displayName: Unit tests and package
+  jobs:
+  - job: UnitTests
+    displayName: Jest (mocked OpenAI / Azure / Azure DevOps)
+    steps:
+    - task: NodeTool@0
+      displayName: Use Node.js $(nodeVersion)
+      inputs:
+        versionSpec: $(nodeVersion)
+
+    - script: npm ci
+      displayName: npm ci
+      workingDirectory: $(botDir)
+
+    - script: npm test
+      displayName: npm test (jest --ci --coverage)
+      workingDirectory: $(botDir)
+
+    - task: PublishTestResults@2
+      displayName: Publish test results
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: $(botDir)/test-results/junit.xml
+        testRunTitle: ChatOps bot unit tests
+        failTaskOnFailedTests: true
+
+    - task: PublishCodeCoverageResults@2
+      displayName: Publish code coverage
+      condition: succeededOrFailed()
+      inputs:
+        summaryFileLocation: $(botDir)/coverage/cobertura-coverage.xml
+
+    - script: |
+        set -euo pipefail
+        npm ci --omit=dev
+        echo "{\"version\":\"$(Build.BuildNumber)\",\"commit\":\"$(Build.SourceVersion)\"}" > version.json
+        mkdir -p "$(Build.ArtifactStagingDirectory)"
+        zip -qr "$(Build.ArtifactStagingDirectory)/bot.zip" host.json package.json version.json src node_modules
+        ls -lh "$(Build.ArtifactStagingDirectory)/bot.zip"
+      displayName: Package (production dependencies only)
+      workingDirectory: $(botDir)
+
+    - publish: $(Build.ArtifactStagingDirectory)/bot.zip
+      artifact: bot
+      displayName: Publish artifact
+
+# ---------------------------------------------------------------------
+- stage: DeployStaging
+  displayName: Deploy to staging + smoke test
+  dependsOn: Test
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - deployment: Staging
+    displayName: Staging slot
+    environment: chatops-staging
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureFunctionApp@2
+            displayName: Deploy package to staging slot
+            inputs:
+              connectedServiceNameARM: $(azureServiceConnection)
+              appType: functionApp
+              appName: $(functionApp)
+              deployToSlotOrASE: true
+              resourceGroupName: $(resourceGroup)
+              slotName: staging
+              package: $(Pipeline.Workspace)/bot/bot.zip
+              deploymentMethod: auto
+
+          - task: AzureCLI@2
+            displayName: Smoke test /api/chat (assert JSON)
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                HOST="https://$(functionApp)-staging.azurewebsites.net"
+
+                echo "== 1. Health: staging slot must serve build $(Build.BuildNumber)"
+                for i in $(seq 1 30); do
+                  H=$(curl -s "$HOST/api/health" || true)
+                  if echo "$H" | jq -e '.status=="healthy" and .slot=="staging" and .version=="$(Build.BuildNumber)"' >/dev/null 2>&1; then
+                    echo "$H" | jq .; break
+                  fi
+                  [ "$i" = 30 ] && { echo "##vso[task.logissue type=error]staging never reported build $(Build.BuildNumber): $H"; exit 1; }
+                  sleep 10
+                done
+
+                echo "== 2. Function key for /api/chat (staging slot)"
+                KEY=""
+                for i in $(seq 1 10); do
+                  KEY=$(az functionapp function keys list -g $(resourceGroup) -n $(functionApp) --slot staging \
+                        --function-name chat --query default -o tsv 2>/dev/null || true)
+                  [ -n "$KEY" ] && break
+                  sleep 10
+                done
+                [ -n "$KEY" ] || KEY=$(az functionapp keys list -g $(resourceGroup) -n $(functionApp) --slot staging --query functionKeys.default -o tsv)
+                echo "##vso[task.setvariable variable=CHAT_KEY;issecret=true]$KEY"
+
+                ask() {  # $1 = message ; prints the JSON body, fails on non-200
+                  local out code body
+                  out=$(curl -s -w '\n%{http_code}' -X POST "$HOST/api/chat?code=$KEY" \
+                        -H 'Content-Type: application/json' \
+                        -d "$(jq -n --arg m "$1" --arg u "pipeline-smoke-$(Build.BuildId)" '{message:$m, userId:$u, conversationId:$u}')")
+                  code=$(echo "$out" | tail -n1); body=$(echo "$out" | sed '$d')
+                  echo "$body" | jq . >&2
+                  [ "$code" = "200" ] || { echo "##vso[task.logissue type=error]HTTP $code"; return 1; }
+                  echo "$body"
+                }
+
+                echo "== 3. Tool call: deployment history must use get_deployment_history"
+                R=$(ask "Show the deployment history of func-orders-svc-rzjw")
+                echo "$R" | jq -e '
+                    (.reply | type == "string" and length > 0)
+                    and .outcome == "ok"
+                    and (.toolCalls | index("get_deployment_history") != null)
+                    and (.usage.prompt > 0)' >/dev/null \
+                  || { echo "##vso[task.logissue type=error]Tool-call assertion failed"; exit 1; }
+                echo "PASS: tool call + JSON shape"
+
+                echo "== 4. Scope guard: off-topic question must not call any tool"
+                R=$(ask "What is the capital of France?")
+                echo "$R" | jq -e '.outcome == "ok" and (.toolCalls | length == 0) and (.reply | length > 0)' >/dev/null \
+                  || { echo "##vso[task.logissue type=error]Scope-guard assertion failed"; exit 1; }
+                echo "PASS: off-topic handled without tools"
+
+# ---------------------------------------------------------------------
+- stage: SwapToProduction
+  displayName: Swap staging -> production
+  dependsOn: DeployStaging
+  condition: succeeded()
+  jobs:
+  - deployment: Swap
+    displayName: Slot swap
+    environment: chatops-production
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: none
+
+          - task: AzureAppServiceManage@0
+            displayName: Swap staging into production
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              Action: Swap Slots
+              WebAppName: $(functionApp)
+              ResourceGroupName: $(resourceGroup)
+              SourceSlot: staging
+              SwapWithProduction: true
+
+          - script: |
+              set -euo pipefail
+              for i in $(seq 1 18); do
+                H=$(curl -s "https://$(functionApp).azurewebsites.net/api/health" || true)
+                if echo "$H" | jq -e '.slot=="production" and .version=="$(Build.BuildNumber)"' >/dev/null 2>&1; then
+                  echo "$H" | jq .; echo "PASS: production serves build $(Build.BuildNumber)"; exit 0
+                fi
+                sleep 10
+              done
+              echo "##vso[task.logissue type=error]production is not serving build $(Build.BuildNumber): $H"; exit 1
+            displayName: Verify production health

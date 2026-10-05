@@ -1,0 +1,9 @@
+{
+  "name": "orders-svc",
+  "version": "1.0.0",
+  "description": "Demo target service operated by the ChatOps bot",
+  "main": "src/functions/*.js",
+  "dependencies": {
+    "@azure/functions": "^4.6.0"
+  }
+}
