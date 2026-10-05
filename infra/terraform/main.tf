@@ -3,7 +3,7 @@
 #
 #   modules/monitoring  -> Log Analytics + Application Insights
 #   modules/identity    -> user-assigned identity for the bot + Function App
-#   (next steps add: openai, data, function-app, bot, target-app, dashboard)
+#   (later steps add: openai, data, function-app, bot, target-app, dashboard)
 # =====================================================================
 
 data "azurerm_client_config" "current" {}

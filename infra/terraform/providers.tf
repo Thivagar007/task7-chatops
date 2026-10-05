@@ -16,11 +16,11 @@ terraform {
     }
   }
 
-  # Reuses the Task 6 state storage account (separate state key).
+  # Remote state in rg-task7-tfstate (created once with the Azure CLI).
   # use_azuread_auth = your az login identity, no storage keys.
   backend "azurerm" {
-    resource_group_name  = "rg-task6-tfstate"
-    storage_account_name = "sttask6tf78731"
+    resource_group_name  = "rg-task7-tfstate"
+    storage_account_name = "sttask7tf14380"
     container_name       = "tfstate"
     key                  = "task7-chatops.tfstate"
     use_azuread_auth     = true
