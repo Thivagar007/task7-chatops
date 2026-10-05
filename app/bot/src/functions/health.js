@@ -8,6 +8,6 @@ app.http("health", {
   route: "health",
   handler: async () => ({
     status: 200,
-    jsonBody: { status: "healthy", service: "chatops-bot", slot: config.slot, version: config.version, time: new Date().toISOString() },
+    jsonBody: { status: "healthy", service: "chatops-bot", slot: config.slot, version: config.version, commit: config.commit, time: new Date().toISOString() },
   }),
 });

@@ -2,6 +2,10 @@
 // every Azure call is authorised with the managed identity.
 const env = process.env;
 
+// version.json is written by the CI/CD pipeline (build number + commit)
+let build = {};
+try { build = require("../../version.json"); } catch { /* local / manual deploy */ }
+
 module.exports = {
   openai: {
     endpoint: (env.OPENAI_ENDPOINT || "").replace(/\/?$/, "/"),
@@ -24,5 +28,6 @@ module.exports = {
   historyMaxMessages: parseInt(env.HISTORY_MAX_MESSAGES || "5", 10),
   pendingTtlMinutes: 5,
   slot: env.APP_SLOT || "local",
-  version: env.APP_VERSION || "1.0.0",
+  version: env.APP_VERSION || build.version || "manual",
+  commit: build.commit || "",
 };

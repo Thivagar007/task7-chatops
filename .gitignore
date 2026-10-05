@@ -16,3 +16,4 @@ local.settings.json
 
 # Test output
 test-results/
+app/bot/version.json

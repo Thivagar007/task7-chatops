@@ -27,7 +27,12 @@
       "src/**/*.js",
       "!src/functions/**"
     ],
-    "transform": {}
+    "transform": {},
+    "coverageReporters": [
+      "text",
+      "cobertura",
+      "lcov"
+    ]
   },
   "jest-junit": {
     "outputDirectory": "test-results",
